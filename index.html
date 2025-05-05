@@ -1,73 +1,110 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - EduApp</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            background: #f8f9fa;
-        }
-        .login-card {
-            width: 100%;
-            max-width: 400px;
-            margin: 0 auto;
-        }
-    </style>
+  <title>Educational Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet>
+  <style>
+    .video-container {
+      position: relative;
+      padding-bottom: 56.25%;
+      height: 0;
+      overflow: hidden;
+    }
+    .video-container iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+  </style>
 </head>
-<body>
-    <div class="container">
-        <div class="card login-card shadow">
-            <div class="card-body">
-                <h3 class="text-center mb-4">EduApp Login</h3>
-                <form id="loginForm">
-                    <div class="mb-3">
-                        <input type="text" class="form-control" id="username" placeholder="Username" required>
-                    </div>
-                    <div class="mb-3">
-                        <input type="password" class="form-control" id="password" placeholder="Password" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Login</button>
-                </form>
-            </div>
+<body class="bg-light">
+  <div class="container py-5" id="loginSection">
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <div class="card shadow">
+          <div class="card-body">
+            <h3 class="text-center mb-4">Login</h3>
+            <form id="loginForm">
+              <div class="mb-3">
+                <input type="text" class="form-control" id="username" placeholder="Username" required>
+              </div>
+              <div class="mb-3">
+                <input type="password" class="form-control" id="password" placeholder="Password" required>
+              </div>
+              <button type="submit" class="btn btn-primary w-100">Login</button>
+            </form>
+          </div>
         </div>
+      </div>
     </div>
+  </div>
 
-    <script>
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby41roKX_fbGUOxMBBPG74vrMSuq0Qp1Y58NiE1bBqZI70h_KW3ymWEMrrSboLCxkJF/exec';
+  <div class="container py-5 d-none" id="contentSection">
+    <div class="row" id="contentContainer"></div>
+  </div>
 
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const data = {
-                action: 'login',
-                username: document.getElementById('username').value,
-                password: document.getElementById('password').value
-            };
+  <script>
+    const SCRIPT_URL = "YOUR_APPS_SCRIPT_URL";
 
-            try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                
-                if (!response.ok) throw new Error('Network error');
-                const result = await response.json();
-                
-                if (result.status === 'success') {
-                    localStorage.setItem('role', result.role);
-                    window.location.href = result.role === 'admin' ? 'admin.html' : 'user.html';
-                } else {
-                    alert(result.message || 'Invalid credentials');
-                }
-            } catch (error) {
-                alert('Login failed: ' + error.message);
-            }
-        });
-    </script>
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+
+      try {
+        const response = await fetch(
+          `${SCRIPT_URL}?action=login&username=${username}&password=${password}`
+        );
+        
+        const result = await response.json();
+        
+        if (result.status === "success") {
+          document.getElementById("loginSection").classList.add("d-none");
+          document.getElementById("contentSection").classList.remove("d-none");
+          displayContent(result.content);
+        } else {
+          alert(result.message || "Login failed");
+        }
+      } catch (error) {
+        alert("Error: " + error.message);
+      }
+    });
+
+    function displayContent(content) {
+      const container = document.getElementById("contentContainer");
+      let html = "";
+
+      content.forEach(([subject, chapter, videoUrl, pdfUrl]) => {
+        html += `
+          <div class="col-md-6 mb-4">
+            <div class="card shadow">
+              <div class="card-header bg-primary text-white">
+                ${subject} - ${chapter}
+              </div>
+              <div class="card-body">
+                <div class="video-container mb-3">
+                  <iframe 
+                    src="${videoUrl.replace('watch?v=', 'embed/')}" 
+                    frameborder="0" 
+                    allowfullscreen>
+                  </iframe>
+                </div>
+                ${pdfUrl ? `
+                <a href="${pdfUrl}" 
+                   class="btn btn-secondary" 
+                   target="_blank">
+                   View PDF
+                </a>` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+  </script>
 </body>
 </html>
