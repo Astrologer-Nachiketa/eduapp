@@ -2,49 +2,54 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Panel - EduApp</title>
+    <title>Admin Panel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="styles.css" rel="stylesheet">
+    <style>
+        .nav-shadow {
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        .card-section {
+            margin-top: 2rem;
+        }
+    </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-dark bg-dark nav-shadow">
         <div class="container">
-            <a class="navbar-brand" href="#">Admin Panel</a>
+            <span class="navbar-brand">Admin Panel</span>
             <button class="btn btn-danger" onclick="logout()">Logout</button>
         </div>
     </nav>
 
-    <div class="container mt-4">
-        <div class="row">
-            <!-- User Management -->
-            <div class="col-md-6 mb-4">
+    <div class="container card-section">
+        <div class="row g-4">
+            <div class="col-md-6">
                 <div class="card shadow">
-                    <div class="card-header bg-warning">
-                        <h5>User Management</h5>
+                    <div class="card-header bg-primary text-white">
+                        User Management
                     </div>
                     <div class="card-body">
                         <div class="mb-3">
-                            <h6>Add New User</h6>
+                            <h5>Add New User</h5>
                             <input type="text" id="newUser" class="form-control mb-2" placeholder="Username">
                             <input type="password" id="newPass" class="form-control mb-2" placeholder="Password">
-                            <button onclick="adminAction('add_user')" class="btn btn-success">Add User</button>
+                            <button class="btn btn-success" onclick="handleAdminAction('add_user')">Add User</button>
                         </div>
                         <hr>
                         <div class="mb-3">
-                            <h6>Change Password</h6>
+                            <h5>Change Password</h5>
                             <input type="text" id="changeUser" class="form-control mb-2" placeholder="Username">
                             <input type="password" id="newPassword" class="form-control mb-2" placeholder="New Password">
-                            <button onclick="adminAction('change_password')" class="btn btn-primary">Change Password</button>
+                            <button class="btn btn-warning" onclick="handleAdminAction('change_password')">Change Password</button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Content Management -->
             <div class="col-md-6">
                 <div class="card shadow">
                     <div class="card-header bg-success text-white">
-                        <h5>Content Management</h5>
+                        Content Management
                     </div>
                     <div class="card-body">
                         <div class="mb-3">
@@ -52,7 +57,7 @@
                             <input type="text" id="chapter" class="form-control mb-2" placeholder="Chapter">
                             <input type="url" id="videoUrl" class="form-control mb-2" placeholder="YouTube URL">
                             <input type="url" id="pdfUrl" class="form-control mb-2" placeholder="PDF URL">
-                            <button onclick="adminAction('add_content')" class="btn btn-primary w-100">Add Content</button>
+                            <button class="btn btn-primary w-100" onclick="handleAdminAction('add_content')">Add Content</button>
                         </div>
                     </div>
                 </div>
@@ -64,9 +69,9 @@
         // Authentication check
         if (localStorage.getItem('role') !== 'admin') window.location.href = 'index.html';
 
-        const adminAction = async (type) => {
+        const handleAdminAction = async (type) => {
             const params = {
-                action: 'admin_action',
+                action: 'admin',
                 type: type,
                 username: document.getElementById('changeUser')?.value,
                 new_password: document.getElementById('newPassword')?.value,
@@ -81,11 +86,12 @@
             try {
                 const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams(params)
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(params)
                 });
+                
                 const result = await response.json();
-                alert(result.status === 'success' ? 'Action completed!' : 'Error: ' + result.message);
+                alert(result.status === 'success' ? 'Operation successful!' : 'Error: ' + result.message);
             } catch (error) {
                 alert('Operation failed: ' + error.message);
             }
