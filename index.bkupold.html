@@ -50,17 +50,18 @@
             margin-bottom: 2rem;
         }
 
-        /* Adjust spacing for tabs */
-        .nav-tabs {
-             margin-bottom: 1.5rem;
+        /* Center logout button */
+        #logout-button-container {
+            text-align: center;
         }
 
-        /* Style for content display area within tabs */
-        .tab-pane .row {
-            --bs-gutter-x: 1.5rem; /* Bootstrap default gutter */
-            --bs-gutter-y: 1.5rem;
+        /* Responsive adjustments if needed */
+        @media (max-width: 768px) {
+            #content-display {
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
         }
-
     </style>
 </head>
 <body>
@@ -86,11 +87,19 @@
                                         Please enter your username.
                                     </div>
                                 </div>
-                                <div class="mb-4">
+                                <div class="mb-3">
                                     <label for="password" class="form-label">Password</label>
                                     <input type="password" class="form-control rounded-pill" id="password" required>
                                     <div class="invalid-feedback">
                                         Please enter your password.
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <label for="client" class="form-label">Client ID</label>
+                                    <input type="text" class="form-control rounded-pill" id="client" placeholder="e.g., MATH01, SCI01" required>
+                                    <div class="form-text">Enter the ID provided by your institution/course.</div>
+                                     <div class="invalid-feedback">
+                                        Please enter your Client ID.
                                     </div>
                                 </div>
                                 <div class="d-grid">
@@ -110,17 +119,13 @@
 
         <div id="content-section" class="d-none">
             <h2 id="content-heading" class="mb-4 text-center fw-semibold">Your Learning Materials</h2>
-
-            <ul class="nav nav-tabs" id="clientTabs" role="tablist">
-                </ul>
-            <div class="tab-content" id="clientTabsContent">
+            <div id="content-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
                 </div>
-
             <div id="no-content" class="alert alert-warning mt-4 d-none text-center" role="alert">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-exclamation-triangle-fill flex-shrink-0 me-2" viewBox="0 0 16 16" role="img" aria-label="Warning:">
                     <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
                 </svg>
-                No learning materials found for your account. Please contact support.
+                No content found for the provided Client ID. Please check the ID or contact support.
             </div>
              </div>
     </div>
@@ -131,28 +136,26 @@
         document.addEventListener('DOMContentLoaded', () => {
             // --- Configuration ---
             // !!! IMPORTANT: Replace this with your actual Deployed Google Apps Script Web App URL !!!
-            const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxrAAqFA-yC0B6pve8dsBx5IFprWIt5bU_4apX-k3Twbc6wHA1KkDIlbA1CB9mvsAPDYw/exec'; // <--- Replace this!
+            const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyWQaSveovDpApD_GjPJLlNWV_xNBid750ZcZJb7rjiGD4tFQ9jn1T6p2bUq_B6QivN/exec'; // <--- Replace this!
 
             // --- DOM Element References ---
             const loginSection = document.getElementById('login-section');
             const contentSection = document.getElementById('content-section');
             const loginForm = document.getElementById('login-form');
             const loginError = document.getElementById('login-error');
+            const contentDisplay = document.getElementById('content-display');
             const contentHeading = document.getElementById('content-heading');
             const noContentMsg = document.getElementById('no-content');
             const usernameInput = document.getElementById('username');
             const passwordInput = document.getElementById('password');
+            const clientInput = document.getElementById('client');
             const loginButton = document.getElementById('login-button');
             const loginButtonSpinner = loginButton.querySelector('.spinner-border');
             const logoutButtonNav = document.getElementById('logout-button-nav');
-            const clientTabsNav = document.getElementById('clientTabs'); // Reference to the tab headers ul
-            const clientTabsContent = document.getElementById('clientTabsContent'); // Reference to the tab content div
+            // const logoutButtonBottom = document.getElementById('logout-button-bottom'); // Uncomment if using bottom button
 
             // --- Constants ---
             const SESSION_STORAGE_KEY = 'eduAppLoggedInUser';
-             // Assuming the first column in the Content sheet is the Client ID (0-based index)
-            // CORRECTED: Changed 'Client ID' to 'Client' to match JSON key
-            const CONTENT_CLIENT_ID_KEY = 'Client'; // This should match the header text in your Content sheet
 
             // --- Functions ---
 
@@ -189,110 +192,34 @@
             }
 
             /**
-             * Displays the fetched content as cards within a tabbed interface.
+             * Displays the fetched content as cards.
              * @param {Array} contentArray - Array of content objects from the backend.
+             * @param {string} client - The client ID used for the heading.
              */
-            function displayContent(contentArray) {
-                clientTabsNav.innerHTML = ''; // Clear previous tabs
-                clientTabsContent.innerHTML = ''; // Clear previous content panes
-                noContentMsg.classList.add('d-none'); // Hide no content message initially
+            function displayContent(contentArray, client) {
+                contentDisplay.innerHTML = ''; // Clear previous content
+                contentHeading.textContent = `Learning Materials: ${client}`; // Update heading
 
                 if (!contentArray || contentArray.length === 0) {
                     noContentMsg.classList.remove('d-none'); // Show "no content" message
-                    contentHeading.textContent = 'Your Learning Materials'; // Reset heading
-                    // Show content section, hide login section, show logout
-                    loginSection.classList.add('d-none');
-                    contentSection.classList.remove('d-none');
-                    logoutButtonNav.classList.remove('d-none');
-                    return; // Nothing to display
-                }
-
-                // Group content by Client ID
-                const contentByClient = contentArray.reduce((acc, item) => {
-                    // Use the corrected key 'Client'
-                    const clientId = item[CONTENT_CLIENT_ID_KEY]; // Get Client ID using the header key
-                    if (clientId) {
-                        if (!acc[clientId]) {
-                            acc[clientId] = [];
-                        }
-                        acc[clientId].push(item);
-                    }
-                    return acc;
-                }, {});
-
-                const clientIds = Object.keys(contentByClient);
-
-                if (clientIds.length === 0) {
-                     noContentMsg.classList.remove('d-none'); // Show "no content" if grouping results in empty
-                     contentHeading.textContent = 'Your Learning Materials'; // Reset heading
                 } else {
-                     contentHeading.textContent = 'Your Learning Materials'; // Keep general heading
-
-                     clientIds.forEach((clientId, index) => {
-                        // Create a URL-friendly ID for tab and pane
-                        const safeClientId = clientId.replace(/[^a-zA-Z0-9-_]/g, '');
-                        const tabId = `client-${safeClientId}-tab`;
-                        const paneId = `client-${safeClientId}-pane`;
-                        const isActive = index === 0; // Make the first tab active
-
-                        // Create Tab Header (Nav item)
-                        const navItem = document.createElement('li');
-                        navItem.className = 'nav-item';
-                        navItem.setAttribute('role', 'presentation');
-
-                        const navLink = document.createElement('button');
-                        navLink.className = `nav-link ${isActive ? 'active' : ''}`;
-                        navLink.setAttribute('id', tabId);
-                        navLink.setAttribute('data-bs-toggle', 'tab');
-                        navLink.setAttribute('data-bs-target', `#${paneId}`);
-                        navLink.setAttribute('type', 'button');
-                        navLink.setAttribute('role', 'tab');
-                        navLink.setAttribute('aria-controls', paneId);
-                        navLink.setAttribute('aria-selected', isActive ? 'true' : 'false');
-                        navLink.textContent = clientId; // Use Client ID as tab text
-
-                        navItem.appendChild(navLink);
-                        clientTabsNav.appendChild(navItem);
-
-                        // Create Tab Pane (Content area)
-                        const tabPane = document.createElement('div');
-                        tabPane.className = `tab-pane fade ${isActive ? 'show active' : ''}`;
-                        tabPane.setAttribute('id', paneId);
-                        tabPane.setAttribute('role', 'tabpanel');
-                        tabPane.setAttribute('aria-labelledby', tabId);
-
-                        const row = document.createElement('div');
-                        row.className = 'row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4'; // Grid for cards
-
-                        // Add content cards for this client ID to the row
-                        contentByClient[clientId].forEach(item => {
-                            const card = createContentCard(item);
-                            row.appendChild(card);
-                        });
-
-                        tabPane.appendChild(row);
-                        clientTabsContent.appendChild(tabPane);
+                    noContentMsg.classList.add('d-none'); // Hide "no content" message
+                    contentArray.forEach(item => {
+                        const card = createContentCard(item);
+                        contentDisplay.appendChild(card);
                     });
-
-                     // Initialize Bootstrap tabs after they are added to the DOM
-                     const firstTabEl = clientTabsNav.querySelector('button:first-child');
-                     if (firstTabEl) {
-                         const firstTab = new bootstrap.Tab(firstTabEl);
-                         firstTab.show();
-                     }
-
                 }
-
 
                 // Show content section, hide login section
                 loginSection.classList.add('d-none');
                 contentSection.classList.remove('d-none');
                 logoutButtonNav.classList.remove('d-none'); // Show nav logout button
+                // if (logoutButtonBottom) logoutButtonBottom.classList.remove('d-none'); // Show bottom logout button
             }
 
             /**
              * Creates a Bootstrap card element for a single content item.
-             * @param {object} item - The content item object (headers as keys).
+             * @param {object} item - The content item object {Subject, Chapter, video url, pdf url}.
              * @returns {HTMLElement} - The generated card column element.
              */
             function createContentCard(item) {
@@ -303,11 +230,11 @@
                 // Added h-100 for equal height cards in a row
                 card.className = 'card h-100 content-card shadow-sm';
 
-                // Card Header (Subject - assuming 'Subject' is a header in your sheet)
+                // Card Header (Subject)
                 const cardHeader = document.createElement('div');
                 cardHeader.className = 'card-header';
-                 // Use 'N/A' if Subject is missing or empty
-                cardHeader.textContent = item['Subject'] || 'N/A'; // Use bracket notation for header with spaces
+                // Use 'N/A' if Subject is missing or empty
+                cardHeader.textContent = item.Subject || 'N/A';
                 card.appendChild(cardHeader);
 
                 // Card Body
@@ -315,20 +242,26 @@
                 // Use flexbox to structure card body content
                 cardBody.className = 'card-body d-flex flex-column';
 
-                // Card Title (Chapter - assuming 'Chapter' is a header)
+                // Card Title (Chapter)
                 const cardTitle = document.createElement('h5');
                 cardTitle.className = 'card-title mb-3';
                  // Use 'N/A' if Chapter is missing or empty
-                cardTitle.textContent = item['Chapter'] || 'N/A'; // Use bracket notation
+                cardTitle.textContent = item.Chapter || 'N/A';
                 cardBody.appendChild(cardTitle);
+
+                // Placeholder for content description (optional)
+                // const cardText = document.createElement('p');
+                // cardText.className = 'card-text flex-grow-1'; // Allows text to take available space
+                // cardText.textContent = 'Brief description or details about the chapter could go here.';
+                // cardBody.appendChild(cardText);
 
                 // Links section - using mt-auto to push to bottom
                 const linkGroup = document.createElement('div');
                 linkGroup.className = 'mt-auto pt-2'; // Push this div to the bottom, add padding top
 
                 let hasLinks = false;
-                // Video Link Button (if URL exists and is not empty - assuming 'video url' header)
-                if (item['video url'] && String(item['video url']).trim() !== '') {
+                // Video Link Button (if URL exists and is not empty)
+                if (item['video url'] && item['video url'].trim() !== '') {
                     const videoLink = document.createElement('a');
                     videoLink.href = item['video url'];
                     videoLink.target = '_blank'; // Open in new tab
@@ -339,8 +272,8 @@
                     hasLinks = true;
                 }
 
-                // PDF Link Button (if URL exists and is not empty - assuming 'pdf url' header)
-                if (item['pdf url'] && String(item['pdf url']).trim() !== '') {
+                // PDF Link Button (if URL exists and is not empty)
+                if (item['pdf url'] && item['pdf url'].trim() !== '') {
                     const pdfLink = document.createElement('a');
                     pdfLink.href = item['pdf url'];
                     pdfLink.target = '_blank'; // Open in new tab
@@ -369,43 +302,50 @@
              * Performs the login operation by fetching data from the Apps Script.
              * @param {string} username - The username.
              * @param {string} password - The password.
+             * @param {string} client - The client ID.
              */
-            async function performLogin(username, password) { // Removed client parameter
+            async function performLogin(username, password, client) {
                 // Construct the URL with query parameters, ensuring proper encoding
-                // Only include username and password
-                const fetchUrl = `${APP_SCRIPT_URL}?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+                const fetchUrl = `${APP_SCRIPT_URL}?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&client=${encodeURIComponent(client)}`;
 
                 setLoadingState(true);
                 hideError();
 
                 try {
-                    const response = await fetch(fetchUrl, { method: 'GET', mode: 'cors' });
+                    const response = await fetch(fetchUrl, { method: 'GET', mode: 'cors' }); // Added mode: 'cors' although default for simple GET
 
+                    // Check if the response is okay (status code 200-299)
                     if (!response.ok) {
                         let errorMsg = `Network error: ${response.status} ${response.statusText}`;
+                        // Try to parse error from response body if Apps Script returns JSON error
                         try {
                             const errorData = await response.json();
                             if (errorData && errorData.error) {
-                                errorMsg = errorData.error;
+                                errorMsg = errorData.error; // Use backend error message
                             }
                         } catch (parseError) {
+                            // Ignore if response is not JSON or empty; use the network error message
                             console.warn("Could not parse error response body:", parseError);
                         }
-                        throw new Error(errorMsg);
+                        throw new Error(errorMsg); // Throw error to be caught below
                     }
 
                     const data = await response.json();
 
+                    // Check for specific error messages returned in the JSON payload
                     if (data.error) {
                         throw new Error(data.error);
                     } else if (Array.isArray(data)) {
                         // --- Success ---
-                        // Store user details (only username and password needed for re-fetch)
-                         sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ username, password }));
+                        // Store user details (excluding password for better practice if backend didn't require it each time)
+                        // Since the backend needs credentials each time, we store them.
+                        // Consider security implications of storing credentials in sessionStorage.
+                        sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ username, password, client }));
 
-                        displayContent(data); // Pass the entire array to displayContent
+                        displayContent(data, client); // Display the fetched content
                         loginForm.classList.remove('was-validated'); // Reset validation state
                     } else {
+                        // Handle unexpected successful response format
                         throw new Error('Received unexpected data format from server.');
                     }
                 } catch (error) {
@@ -414,6 +354,7 @@
                     // Ensure user is logged out visually if login fails
                     performLogout();
                 } finally {
+                    // Hide spinner and enable button regardless of success or failure
                     setLoadingState(false);
                 }
             }
@@ -429,16 +370,12 @@
                 contentSection.classList.add('d-none');
                 loginSection.classList.remove('d-none');
                 logoutButtonNav.classList.add('d-none'); // Hide nav logout button
-
-                // Clear tab headers and content panes
-                clientTabsNav.innerHTML = '';
-                clientTabsContent.innerHTML = '';
-
+                // if (logoutButtonBottom) logoutButtonBottom.classList.add('d-none'); // Hide bottom logout button
+                contentDisplay.innerHTML = ''; // Clear content area
                 loginForm.reset(); // Clear form fields
                 loginForm.classList.remove('was-validated'); // Reset validation state
                 hideError(); // Hide any previous errors
                 noContentMsg.classList.add('d-none'); // Hide no content message
-                 contentHeading.textContent = 'Your Learning Materials'; // Reset heading
             }
 
 
@@ -446,15 +383,18 @@
 
             // Login Form Submission
             loginForm.addEventListener('submit', async (event) => {
-                event.preventDefault();
-                event.stopPropagation();
+                event.preventDefault(); // Prevent default form submission
+                event.stopPropagation(); // Stop propagation for Bootstrap validation
 
+                // Add Bootstrap's validation styles
                 loginForm.classList.add('was-validated');
 
+                // Check if the form is valid according to HTML5 constraints (e.g., required)
                 if (!loginForm.checkValidity()) {
-                    return;
+                    return; // Exit if form is invalid
                 }
 
+                // Basic check for placeholder URL
                 if (APP_SCRIPT_URL === 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE' || !APP_SCRIPT_URL) {
                     showError('Frontend Error: Google Apps Script URL is not configured in the script.');
                     return;
@@ -462,14 +402,20 @@
 
                 const username = usernameInput.value.trim();
                 const password = passwordInput.value.trim();
-                // Removed client value extraction
+                const client = clientInput.value.trim();
 
                 // Perform the login API call
-                await performLogin(username, password); // Pass only username and password
+                await performLogin(username, password, client);
             });
 
             // Logout Button Click (Nav)
             logoutButtonNav.addEventListener('click', performLogout);
+
+            // Logout Button Click (Bottom - uncomment if used)
+            // if (logoutButtonBottom) {
+            //     logoutButtonBottom.addEventListener('click', performLogout);
+            // }
+
 
             // --- Initialization ---
 
@@ -478,15 +424,18 @@
             if (loggedInUserData) {
                 try {
                     const userData = JSON.parse(loggedInUserData);
-                    // Re-fetch content using stored username and password
-                    if (userData.username && userData.password) { // Check for username and password
-                         if (APP_SCRIPT_URL === 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE' || !APP_SCRIPT_URL) {
+                    // Re-validate or directly fetch content if session is considered trusted
+                    // For this example, we'll re-fetch content using stored credentials
+                    // Note: This means credentials are sent on each page load while session is active.
+                    if (userData.username && userData.password && userData.client) {
+                         // Check for placeholder URL before attempting fetch
+                        if (APP_SCRIPT_URL === 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE' || !APP_SCRIPT_URL) {
                              console.error('App Script URL not configured. Cannot re-fetch content.');
+                             // Optionally log the user out if URL is missing
                              performLogout();
                         } else {
                             console.log('Session found, attempting to re-fetch content...');
-                            // Call performLogin with stored username and password
-                            performLogin(userData.username, userData.password);
+                            performLogin(userData.username, userData.password, userData.client);
                         }
                     } else {
                          // Invalid data in session storage, clear it
