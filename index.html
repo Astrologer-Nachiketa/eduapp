@@ -131,7 +131,9 @@
         document.addEventListener('DOMContentLoaded', () => {
             // --- Configuration ---
             // !!! IMPORTANT: Replace this with your actual Deployed Google Apps Script Web App URL !!!
-            const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxrAAqFA-yC0B6pve8dsBx5IFprWIt5bU_4apX-k3Twbc6wHA1KkDIlbA1CB9mvsAPDYw/exec'; // <--- Replace this!
+            const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwUJCqJxJa02C1bGgEAzyW0aYBJCWrHZXMhIf4sCQziBfQXuayCqLf02BU9bOEhCa9Ljw/exec'; // <--- Replace this!
+            // Define the URL for the admin upload page
+            const ADMIN_UPLOAD_PAGE_URL = 'admin_upload.html'; // Assuming it's in the same directory
 
             // --- DOM Element References ---
             const loginSection = document.getElementById('login-section');
@@ -150,8 +152,6 @@
 
             // --- Constants ---
             const SESSION_STORAGE_KEY = 'eduAppLoggedInUser';
-             // Assuming the first column in the Content sheet is the Client ID (0-based index)
-            // CORRECTED: Changed 'Client ID' to 'Client' to match JSON key
             const CONTENT_CLIENT_ID_KEY = 'Client'; // This should match the header text in your Content sheet
 
             // --- Functions ---
@@ -209,7 +209,6 @@
 
                 // Group content by Client ID
                 const contentByClient = contentArray.reduce((acc, item) => {
-                    // Use the corrected key 'Client'
                     const clientId = item[CONTENT_CLIENT_ID_KEY]; // Get Client ID using the header key
                     if (clientId) {
                         if (!acc[clientId]) {
@@ -370,9 +369,7 @@
              * @param {string} username - The username.
              * @param {string} password - The password.
              */
-            async function performLogin(username, password) { // Removed client parameter
-                // Construct the URL with query parameters, ensuring proper encoding
-                // Only include username and password
+            async function performLogin(username, password) {
                 const fetchUrl = `${APP_SCRIPT_URL}?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
 
                 setLoadingState(true);
@@ -398,11 +395,18 @@
 
                     if (data.error) {
                         throw new Error(data.error);
-                    } else if (Array.isArray(data)) {
-                        // --- Success ---
+                    } else if (data.isAdmin) { // Check if the response indicates admin login
+                         // --- Admin Login Success ---
+                         console.log('Admin login successful, redirecting to admin page.');
+                         // Store admin status (optional, but good for basic check on admin page)
+                         sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ username, isAdmin: true }));
+                         window.location.href = ADMIN_UPLOAD_PAGE_URL; // Redirect to admin page
+                    }
+                    else if (Array.isArray(data)) {
+                        // --- Regular User Login Success ---
+                        console.log('Regular user login successful, displaying content.');
                         // Store user details (only username and password needed for re-fetch)
-                         sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ username, password }));
-
+                         sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ username, password, isAdmin: false })); // Store isAdmin flag
                         displayContent(data); // Pass the entire array to displayContent
                         loginForm.classList.remove('was-validated'); // Reset validation state
                     } else {
@@ -456,16 +460,15 @@
                 }
 
                 if (APP_SCRIPT_URL === 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE' || !APP_SCRIPT_URL) {
-                    showError('Frontend Error: Google Apps Script URL is not configured in the script.');
+                    showError('Frontend Error: Google Apps Script URL is not configured in the script.', 'danger');
                     return;
                 }
 
                 const username = usernameInput.value.trim();
                 const password = passwordInput.value.trim();
-                // Removed client value extraction
 
                 // Perform the login API call
-                await performLogin(username, password); // Pass only username and password
+                await performLogin(username, password);
             });
 
             // Logout Button Click (Nav)
@@ -478,14 +481,20 @@
             if (loggedInUserData) {
                 try {
                     const userData = JSON.parse(loggedInUserData);
-                    // Re-fetch content using stored username and password
-                    if (userData.username && userData.password) { // Check for username and password
+                     // Check if the stored session indicates admin
+                    if (userData.isAdmin) {
+                         console.log('Admin session found, redirecting to admin page.');
+                         window.location.href = ADMIN_UPLOAD_PAGE_URL; // Redirect to admin page
+                    }
+                    // Re-fetch content for regular user if session data exists
+                    else if (userData.username && userData.password) {
                          if (APP_SCRIPT_URL === 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE' || !APP_SCRIPT_URL) {
                              console.error('App Script URL not configured. Cannot re-fetch content.');
                              performLogout();
                         } else {
-                            console.log('Session found, attempting to re-fetch content...');
+                            console.log('Regular user session found, attempting to re-fetch content...');
                             // Call performLogin with stored username and password
+                            // This will fetch data and call displayContent if successful
                             performLogin(userData.username, userData.password);
                         }
                     } else {

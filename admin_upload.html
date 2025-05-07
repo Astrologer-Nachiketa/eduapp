@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Submit Learning Content</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Apply Inter font */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa; /* Light background */
+        }
+
+        /* Style for the card container */
+        .upload-card {
+            border: none;
+            border-radius: 0.75rem; /* Rounded corners */
+        }
+
+        /* Style for form inputs */
+        .upload-card .form-control {
+            border-radius: 0.5rem; /* Rounded inputs */
+        }
+
+        /* Ensure navbar has some bottom margin */
+        .navbar {
+            margin-bottom: 2rem;
+        }
+
+        /* Style for status message */
+        #status {
+            margin-top: 1rem;
+            text-align: center;
+            font-weight: 500;
+        }
+
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="#">🎓 EduApp Admin Portal</a>
+            <button id="logout-button-nav" class="btn btn-outline-light">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card shadow-sm upload-card">
+                    <div class="card-body p-4 p-md-5">
+                        <h2 class="card-title text-center mb-4 fw-bold">Upload Learning Content</h2>
+                        <form id="uploadForm">
+                            <div class="mb-3">
+                                <label for="client" class="form-label">Client ID</label>
+                                <input type="text" class="form-control" id="client" name="client" placeholder="e.g., MATH01" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="subject" class="form-label">Subject</label>
+                                <input type="text" class="form-control" id="subject" name="subject" placeholder="e.g., Mathematics" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="chapter" class="form-label">Chapter</label>
+                                <input type="text" class="form-control" id="chapter" name="chapter" placeholder="e.g., Algebra Basics" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="videoUrl" class="form-label">Video URL (Optional)</label>
+                                <input type="url" class="form-control" id="videoUrl" name="videoUrl" placeholder="https://example.com/video">
+                            </div>
+                            <div class="mb-4">
+                                <label for="pdfUrl" class="form-label">PDF URL (Optional)</label>
+                                <input type="url" class="form-control" id="pdfUrl" name="pdfUrl" placeholder="https://example.com/document.pdf">
+                            </div>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg" id="submit-button">
+                                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                    Submit Content
+                                </button>
+                            </div>
+                        </form>
+                        <p id="status" class="alert mt-4 d-none"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // !!! IMPORTANT: Replace this with your actual Deployed Google Apps Script Web App URL !!!
+            const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwUJCqJxJa02C1bGgEAzyW0aYBJCWrHZXMhIf4sCQziBfQXuayCqLf02BU9bOEhCa9Ljw/exec'; // <--- Replace this!
+
+            const uploadForm = document.getElementById('uploadForm');
+            const statusMessage = document.getElementById('status');
+            const submitButton = document.getElementById('submit-button');
+            const submitButtonSpinner = submitButton.querySelector('.spinner-border');
+            const logoutButtonNav = document.getElementById('logout-button-nav');
+
+             // --- Constants ---
+            const SESSION_STORAGE_KEY = 'eduAppLoggedInUser'; // Use the same key for session management
+
+            /**
+             * Sets the loading state for the submit button.
+             * @param {boolean} isLoading - True to show loading, false to hide.
+             */
+            function setLoadingState(isLoading) {
+                if (isLoading) {
+                    submitButtonSpinner.classList.remove('d-none'); // Show spinner
+                    submitButton.disabled = true; // Disable button
+                } else {
+                    submitButtonSpinner.classList.add('d-none'); // Hide spinner
+                    submitButton.disabled = false; // Enable button
+                }
+            }
+
+            /**
+             * Displays a status message.
+             * @param {string} message - The message to display.
+             * @param {string} type - 'success' or 'danger' for styling.
+             */
+            function showStatus(message, type) {
+                statusMessage.textContent = message;
+                statusMessage.className = `alert mt-4 text-center alert-${type}`; // Apply Bootstrap alert classes
+                statusMessage.classList.remove('d-none');
+            }
+
+            /**
+             * Hides the status message.
+             */
+            function hideStatus() {
+                 statusMessage.classList.add('d-none');
+                 statusMessage.textContent = '';
+                 statusMessage.className = 'alert mt-4 d-none'; // Reset classes
+            }
+
+
+            // --- Event Listeners ---
+
+            uploadForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                hideStatus(); // Hide previous status message
+
+                 if (APP_SCRIPT_URL === 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE' || !APP_SCRIPT_URL) {
+                    showStatus('Frontend Error: Google Apps Script URL is not configured in the script.', 'danger');
+                    return;
+                }
+
+
+                const form = new FormData(this);
+                // FormData can be sent directly with fetch POST, or converted to URLSearchParams
+                // URLSearchParams is often simpler for basic key/value pairs like form data
+                const data = new URLSearchParams(form);
+
+                setLoadingState(true); // Show loading spinner
+
+                fetch(APP_SCRIPT_URL, {
+                    method: 'POST',
+                    body: data,
+                    // mode: 'cors' is often default for POST, but explicit is fine
+                    // headers: { 'Content-Type': 'application/x-www-form-urlencoded' } // fetch sets this correctly for URLSearchParams
+                })
+                .then(response => {
+                    if (!response.ok) {
+                         // Handle non-2xx status codes
+                        let errorMsg = `Network error: ${response.status} ${response.statusText}`;
+                        // Try to parse error from response body if Apps Script returns JSON error
+                        return response.json().then(errorData => {
+                             if (errorData && errorData.error) {
+                                 errorMsg = errorData.error; // Use backend error message
+                             }
+                             throw new Error(errorMsg); // Throw to be caught by the .catch below
+                         }).catch(() => {
+                             // If response is not JSON or parsing fails, throw the network error
+                             throw new Error(errorMsg);
+                         });
+                    }
+                    return response.json(); // Parse JSON response for success/message
+                })
+                .then(result => {
+                    if (result.success) {
+                        showStatus(result.message || 'Content submitted successfully!', 'success');
+                        uploadForm.reset(); // Clear the form on success
+                    } else {
+                        // Handle success: false from backend JSON
+                         showStatus(result.error || 'Submission failed.', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Submission error:', error);
+                    showStatus('Submission failed: ' + (error.message || 'An unexpected error occurred.'), 'danger');
+                })
+                .finally(() => {
+                    setLoadingState(false); // Hide loading spinner
+                });
+            });
+
+             // Logout Button Click
+            logoutButtonNav.addEventListener('click', () => {
+                sessionStorage.removeItem(SESSION_STORAGE_KEY); // Clear session storage
+                // Redirect to the main login page (index.html)
+                window.location.href = 'index.html'; // Assuming index.html is in the same directory
+            });
+
+             // --- Initialization ---
+             // Basic check to ensure this page is accessed after login
+             // In a real app, server-side session validation is crucial
+             const loggedInUserData = sessionStorage.getItem(SESSION_STORAGE_KEY);
+             if (!loggedInUserData) {
+                 // If no session data, redirect to login page
+                 console.warn('No session found, redirecting to login.');
+                 window.location.href = 'index.html';
+             } else {
+                 try {
+                     const userData = JSON.parse(loggedInUserData);
+                     // Optional: You could add a check here if userData indicates admin role
+                     // if (!userData.isAdmin) {
+                     //    console.warn('Not an admin, redirecting to login.');
+                     //    window.location.href = 'index.html';
+                     // }
+                 } catch (e) {
+                     console.error("Error parsing session data:", e);
+                     window.location.href = 'index.html'; // Redirect on parse error
+                 }
+             }
+        });
+    </script>
+</body>
+</html>
