@@ -164,6 +164,14 @@
         .main-content-area.login-visible-align-bottom {
             justify-content: flex-end;
         }
+
+        /* Ensure content section itself tries to align top and doesn't force its own content down */
+        #content-section {
+            /* If .main-content-area is display:flex, align-self can be useful */
+            align-self: flex-start; /* Try to stick to the top of the parent flex container */
+            width: 100%; /* Ensure it takes full width */
+            /* We want its internal content (tabs, etc.) to flow naturally from its top */
+        }
     </style>
 </head>
 <body>
