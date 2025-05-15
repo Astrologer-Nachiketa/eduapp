@@ -156,8 +156,13 @@
             flex-grow: 1; /* Allow it to take available vertical space */
             display: flex;
             flex-direction: column;
-            justify-content: flex-end; /* Push its content to the bottom */
+            justify-content: flex-start; /* MODIFIED: Default to top alignment for content */
             padding-bottom: 2rem; /* Add some space at the very bottom */
+        }
+
+        /* ADDED: Modifier class to align login form to bottom */
+        .main-content-area.login-visible-align-bottom {
+            justify-content: flex-end;
         }
     </style>
 </head>
@@ -246,6 +251,7 @@
             const logoutButtonNav = document.getElementById('logout-button-nav');
             const clientTabsNav = document.getElementById('clientTabs'); // Reference to the tab headers ul
             const clientTabsContent = document.getElementById('clientTabsContent'); // Reference to the tab content div
+            const mainContentArea = document.querySelector('.main-content-area'); // ADDED: Reference to main content area
 
             // --- Constants ---
             const SESSION_STORAGE_KEY = 'eduAppLoggedInUser';
@@ -295,6 +301,7 @@
                 noContentMsg.classList.add('d-none'); // Hide no content message initially
 
                 document.body.classList.remove('show-login-background'); // ADDED: Hide background image
+                if (mainContentArea) mainContentArea.classList.remove('login-visible-align-bottom'); // ADDED: Align content to top
 
                 if (!contentArray || contentArray.length === 0) {
                     noContentMsg.classList.remove('d-none'); // Show "no content" message
@@ -534,6 +541,7 @@
                 logoutButtonNav.classList.add('d-none'); // Hide nav logout button
 
                 document.body.classList.add('show-login-background'); // ADDED: Show background image
+                if (mainContentArea) mainContentArea.classList.add('login-visible-align-bottom'); // ADDED: Align login to bottom
 
                 // Clear tab headers and content panes
                 clientTabsNav.innerHTML = '';
