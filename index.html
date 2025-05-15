@@ -8,17 +8,107 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0d6efd">
+    <link rel="apple-touch-icon" href="1.jpeg">
+    <link rel="icon" type="image/jpeg" href="1.jpeg">
     <style>
         /* Apply Inter font */
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f8f9fa; /* Light background */
+            background-color: #f8f9fa; /* Fallback color */
+            position: relative; 
+            z-index: 0; 
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
 
-        /* Style for the login card */
+        body::before {
+            content: "";
+            position: fixed; 
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('1.jpeg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0; /* MODIFIED: Default to hidden */
+            visibility: hidden; /* ADDED: Default to hidden */
+            z-index: -1;  /* Ensure it's a background */
+            transition: opacity 0.5s ease-in-out, visibility 0s linear 0.5s; /* ADDED: Smooth transition */
+        }
+
+        /* ADDED: Rule to show background when class is present on body */
+        body.show-login-background::before {
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.5s ease-in-out, visibility 0s linear 0s;
+        }
+
+        /* Ensure actual content is on top */
+        .navbar, .container { 
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Style for input fields (updated for white text and transparent card) */
+        #username,
+        #password {
+            background-color: transparent !important;
+            color: #ffffff !important; /* White text for input */
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.5); /* Subtle shadow for readability */
+            border: 1px solid red !important; /* MODIFIED: Changed border to red */
+            line-height: 1.2 !important; /* ADDED: Control line box height */
+            padding-top: 0.85rem !important;  /* ADDED: Push text down */
+            padding-bottom: 0.2rem !important; /* ADDED: Reduce bottom space */
+            padding-left: 1em !important; /* ADDED: Consistent with .rounded-pill */
+            padding-right: 1em !important; /* ADDED: Consistent with .rounded-pill */
+            height: auto !important; /* ADDED: Allow padding/line-height to determine height */
+        }
+
+        /* Style for transparent placeholder text (remains the same) */
+        #username::placeholder,
+        #password::placeholder {
+            color: #007bff !important; /* MODIFIED: Changed from transparent to blue */
+            /* text-shadow: 1px 1px 1px rgba(0,0,0,0.3); /* Optional: Add a subtle shadow if needed for readability on image */
+        }
+
+        /* Make the login card and its body transparent */
         .login-card {
-            border: none;
-            border-radius: 0.75rem; /* Rounded corners */
+            background-color: transparent !important;
+            border: none !important; /* Remove card border */
+            box-shadow: none !important; /* Remove card shadow */
+        }
+        .login-card .card-body {
+            background-color: transparent !important; /* Ensure card body is also transparent */
+        }
+
+        /* Adjust text colors within the form for readability */
+        .login-card h2.card-title {
+            color: #ffffff !important;
+            text-shadow: 2px 2px 3px rgba(0,0,0,0.7);
+        }
+
+        .login-card .form-label {
+            color: #007bff !important; /* MODIFIED: Blue color for labels */
+            font-weight: bold !important; /* ADDED: Bold font weight */
+            text-shadow: none; /* REMOVED: text-shadow as it was for light text */
+        }
+
+        .login-card .invalid-feedback {
+            color: #ffdddd !important; /* Light red for errors */
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
+        }
+
+        /* Login error alert - make its background semi-transparent and text white */
+        #login-error.alert-danger {
+            background-color: rgba(220, 53, 69, 0.4) !important; /* Semi-transparent Bootstrap danger */
+            color: #ffffff !important;
+            border-color: rgba(255, 255, 255, 0.3) !important; /* Lighter border for the alert */
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
 
         /* Style for content cards */
@@ -46,7 +136,7 @@
         }
 
         /* Ensure navbar has some bottom margin */
-        .navbar {
+        .navbar { /* This selector was already used above for z-index, combining is fine */
             margin-bottom: 2rem;
         }
 
@@ -61,6 +151,14 @@
             --bs-gutter-y: 1.5rem;
         }
 
+        /* ADDED: Styles for the main content area to be bottom-aligned */
+        .main-content-area {
+            flex-grow: 1; /* Allow it to take available vertical space */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end; /* Push its content to the bottom */
+            padding-bottom: 2rem; /* Add some space at the very bottom */
+        }
     </style>
 </head>
 <body>
@@ -71,13 +169,12 @@
         </div>
     </nav>
 
-    <div class="container mt-4">
+    <div class="container mt-4 main-content-area">
         <div id="login-section">
             <div class="row justify-content-center">
                 <div class="col-md-7 col-lg-5 col-xl-4">
                     <div class="card shadow-sm login-card">
                         <div class="card-body p-4 p-md-5">
-                            <h2 class="card-title text-center mb-4 fw-bold">Student Login</h2>
                             <form id="login-form" novalidate>
                                 <div class="mb-3">
                                     <label for="username" class="form-label">Username</label>
@@ -196,6 +293,8 @@
                 clientTabsNav.innerHTML = ''; // Clear previous tabs
                 clientTabsContent.innerHTML = ''; // Clear previous content panes
                 noContentMsg.classList.add('d-none'); // Hide no content message initially
+
+                document.body.classList.remove('show-login-background'); // ADDED: Hide background image
 
                 if (!contentArray || contentArray.length === 0) {
                     noContentMsg.classList.remove('d-none'); // Show "no content" message
@@ -345,7 +444,7 @@
                     pdfLink.target = '_blank'; // Open in new tab
                     pdfLink.rel = 'noopener noreferrer'; // Security best practice
                     pdfLink.className = 'btn btn-sm btn-secondary';
-                    pdfLink.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-pdf-fill me-1" viewBox="0 0 16 16"><path d="M5.523 12.424c.14-.082.293-.162.459-.252.166-.09.335-.169.517-.234.182-.065.37-.1.57-.1.283 0 .516.035.702.106.186.07.356.176.508.309.153.132.28.302.377.498.098.196.146.447.146.756 0 .386-.06.716-.181.992-.12.276-.297.51-.527.698a2.176 2.176 0 0 1-.57.399c-.2.103-.434.155-.697.155-.308 0-.57-.05-.78-.15-.21-.1-.384-.248-.52-.442a1.703 1.703 0 0 1-.318-.656c-.05-.174-.075-.38-.075-.63 0-.31.045-.566.135-.766.09-.2.23-.37.41-.516zm1.535-1.119c.13-.13.289-.24.475-.328.186-.088.414-.133.68-.133.316 0 .58.054.784.164.204.11.37.28.498.508.127.228.19.52.19.876 0 .474-.08.898-.24 1.272-.16.374-.39.68-.68.92-.29.24-.64.36-1.03.36-.373 0-.68-.067-.91-.2-.23-.134-.4-.33-.51-.586a2.04 2.04 0 0 1-.18-.75c0-.355.04-.66.12-.914.08-.254.2-.46.36-.622zm.93.124v1.117h-.482v-.126c-.047-.022-.09-.053-.13-.09-.04-.037-.074-.08-.1-.13a.554.554 0 0 1-.03-.184c0-.075.01-.14.03-.196.02-.056.05-.103.09-.142.04-.04.088-.073.14-.098.052-.026.11-.04.175-.04.07 0 .13.016.18.048.05.032.09.075.12.13.03.054.045.117.045.187 0 .06-.01.113-.03.16-.02.047-.05.087-.09.12zm-1.834 0v1.117h-.482v-.126c-.047-.022-.09-.053-.13-.09-.04-.037-.074-.08-.1-.13a.554.554 0 0 1-.03-.184c0-.075.01-.14.03-.196.02-.056.05-.103.09-.142.04-.04.088-.073.14-.098.052-.026.11-.04.175-.04.07 0 .13.016.18.048.05.032.09.075.12.13.03.054.045.117.045.187 0 .06-.01.113-.03.16-.02.047-.05.087-.09.12zm-1.834 0v1.117h-.482v-.126c-.047-.022-.09-.053-.13-.09-.04-.037-.074-.08-.1-.13a.554.554 0 0 1-.03-.184c0-.075.01-.14.03-.196.02-.056.05-.103.09-.142.04-.04.088-.073.14-.098.052-.026.11-.04.175-.04.07 0 .13.016.18.048.05.032.09.075.12.13.03.054.045.117.045.187 0 .06-.01.113-.03.16-.02.047-.05.087-.09.12z"/><path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/></svg> Open PDF`;
+                    pdfLink.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-pdf-fill me-1" viewBox="0 0 16 16"><path d="M5.523 12.424c.14-.082.293-.162.459-.252.166-.09.335-.169.517-.234.182-.065.37-.1.57-.1.283 0 .516.035.702.106.186.07.356.176.508.309.153.132.28.302.377.498.098.196.146.447.146.756 0 .386-.06.716-.181.992-.12.276-.297.51-.527.698a2.176 2.176 0 0 1-.57.399c-.2.103-.434.155-.697.155-.308 0-.57-.05-.78-.15-.21-.134-.384-.248-.52-.442a1.703 1.703 0 0 1-.318-.656c-.05-.174-.075-.38-.075-.63 0-.31.045-.566.135-.766.09-.2.23-.37.41-.516zm1.535-1.119c.13-.13.289-.24.475-.328.186-.088.414-.133.68-.133.316 0 .58.054.784.164.204.11.37.28.498.508.127.228.19.52.19.876 0 .474-.08.898-.24 1.272-.16.374-.39.68-.68.92-.29.24-.64.36-1.03.36-.373 0-.68-.067-.91-.2-.23-.134-.4-.33-.51-.586a2.04 2.04 0 0 1-.18-.75c0-.355.04-.66.12-.914.08-.254.2-.46.36-.622zm.93.124v1.117h-.482v-.126c-.047-.022-.09-.053-.13-.09-.04-.037-.074-.08-.1-.13a.554.554 0 0 1-.03-.184c0-.075.01-.14.03-.196.02-.056.05-.103.09-.142.04-.04.088-.073.14-.098.052-.026.11-.04.175-.04.07 0 .13.016.18.048.05.032.09.075.12.13.03.054.045.117.045.187 0 .06-.01.113-.03.16-.02.047-.05.087-.09.12zm-1.834 0v1.117h-.482v-.126c-.047-.022-.09-.053-.13-.09-.04-.037-.074-.08-.1-.13a.554.554 0 0 1-.03-.184c0-.075.01-.14.03-.196.02-.056.05-.103.09-.142.04-.04.088-.073.14-.098.052-.026.11-.04.175-.04.07 0 .13.016.18.048.05.032.09.075.12.13.03.054.045.117.045.187 0 .06-.01.113-.03.16-.02.047-.05.087-.09.12z"/><path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/></svg> Open PDF`;
                     linkGroup.appendChild(pdfLink);
                     hasLinks = true;
                 }
@@ -433,6 +532,8 @@
                 contentSection.classList.add('d-none');
                 loginSection.classList.remove('d-none');
                 logoutButtonNav.classList.add('d-none'); // Hide nav logout button
+
+                document.body.classList.add('show-login-background'); // ADDED: Show background image
 
                 // Clear tab headers and content panes
                 clientTabsNav.innerHTML = '';
